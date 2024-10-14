@@ -10,7 +10,7 @@ ARG JS_SRC=js-builder
 
 FROM --platform=${JS_PLATFORM} ${JS_IMAGE} as js-builder
 
-ENV NODE_OPTIONS=--max_old_space_size=8000
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 
 WORKDIR /tmp/grafana
 
@@ -24,7 +24,7 @@ COPY conf/defaults.ini ./conf/defaults.ini
 
 RUN apk add --no-cache make build-base python3
 
-RUN yarn install --immutable
+RUN yarn install
 
 COPY tsconfig.json .eslintrc .editorconfig .browserslistrc .prettierrc.js ./
 COPY scripts scripts
@@ -56,17 +56,17 @@ COPY go.* ./
 COPY .bingo .bingo
 
 # Include vendored dependencies
-COPY pkg/util/xorm/go.* pkg/util/xorm/
-COPY pkg/apiserver/go.* pkg/apiserver/
-COPY pkg/apimachinery/go.* pkg/apimachinery/
-COPY pkg/build/go.* pkg/build/
-COPY pkg/build/wire/go.* pkg/build/wire/
-COPY pkg/promlib/go.* pkg/promlib/
-COPY pkg/storage/unified/resource/go.* pkg/storage/unified/resource/
-COPY pkg/storage/unified/apistore/go.* pkg/storage/unified/apistore/
-COPY pkg/semconv/go.* pkg/semconv/
-COPY pkg/aggregator/go.* pkg/aggregator/
-COPY apps/playlist/go.* apps/playlist/
+COPY pkg/util/xorm pkg/util/xorm
+COPY pkg/apiserver pkg/apiserver
+COPY pkg/apimachinery pkg/apimachinery
+COPY pkg/build pkg/build
+COPY pkg/build/wire pkg/build/wire
+COPY pkg/promlib pkg/promlib
+COPY pkg/storage/unified/resource pkg/storage/unified/resource
+COPY pkg/storage/unified/apistore pkg/storage/unified/apistore
+COPY pkg/semconv pkg/semconv
+COPY pkg/aggregator pkg/aggregator
+COPY apps/playlist apps/playlist
 
 RUN go mod download
 RUN if [[ "$BINGO" = "true" ]]; then \
@@ -187,6 +187,32 @@ RUN if [ ! $(getent group "$GF_GID") ]; then \
 COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 COPY --from=js-src /tmp/grafana/public ./public
 COPY --from=js-src /tmp/grafana/LICENSE ./
+
+RUN rm -rf /public/app/plugins/datasource/elasticsearch /public/build/elasticsearch* \
+    /public/app/plugins/datasource/graphite /public/build/graphite* \
+    /public/app/plugins/datasource/opentsdb /public/build/opentsdb* \
+    /public/app/plugins/datasource/influxdb /public/build/influxdb* \
+    /public/app/plugins/datasource/loki /public/build/loki* \
+    /public/app/plugins/datasource/grafana-testdata-datasource /public/build/grafana-testdata-datasource* \
+    /public/app/plugins/datasource/tempo /public/build/tempo* \
+    /public/app/plugins/datasource/jaeger /public/build/jaeger* \
+    /public/app/plugins/datasource/zipkin /public/build/zipkin* \
+    /public/app/plugins/datasource/azuremonitor /public/build/azureMonitor* \
+    /public/app/plugins/datasource/cloudwatch /public/build/cloudwatch* \
+    /public/app/plugins/datasource/cloud-monitoring /public/build/cloudMonitoring* \
+    /public/app/plugins/datasource/parca /public/build/parca* \
+    /public/app/plugins/datasource/phlare /public/build/phlare* \
+    /public/app/plugins/datasource/grafana-pyroscope-datasource /public/build/pyroscope* \
+    /public/app/plugins/datasource/grafana /public/build/grafana*
+
+RUN rm -rf /public/app/plugins/panel/alertlist \
+    /public/app/plugins/panel/annolist \
+    /public/app/plugins/panel/dashlist \
+    /public/app/plugins/panel/news \
+    /public/app/plugins/panel/geomap \
+    /public/app/plugins/panel/table-old \
+    /public/app/plugins/panel/traces \
+    /public/app/plugins/panel/flamegraph
 
 EXPOSE 3000
 

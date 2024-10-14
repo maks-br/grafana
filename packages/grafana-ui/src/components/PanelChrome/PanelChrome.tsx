@@ -383,7 +383,7 @@ const getStyles = (theme: GrafanaTheme2) => {
     container: css({
       label: 'panel-container',
       backgroundColor: background,
-      border: `1px solid ${borderColor}`,
+      border: `0px solid ${borderColor}`,
       position: 'relative',
       borderRadius: theme.shape.radius.default,
       height: '100%',
@@ -419,7 +419,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       border: '1px solid transparent',
       boxSizing: 'border-box',
       '&:hover': {
-        border: `1px solid ${borderColor}`,
+        border: `0px solid ${borderColor}`,
       },
     }),
     loadingBarContainer: css({

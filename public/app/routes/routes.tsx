@@ -163,17 +163,17 @@ export function getAppRoutes(): RouteDescriptor[] {
       path: '/apps',
       component: () => <NavLandingPage navId="apps" />,
     },
-    {
-      path: '/alerts-and-incidents',
-      component: () => {
-        return (
-          <NavLandingPage
-            navId="alerts-and-incidents"
-            header={(!isOpenSourceEdition() && isAdmin()) || isLocalDevEnv() ? <ConfigureIRM /> : undefined}
-          />
-        );
-      },
-    },
+    // {
+    //   path: '/alerts-and-incidents',
+    //   component: () => {
+    //     return (
+    //       <NavLandingPage
+    //         navId="alerts-and-incidents"
+    //         header={(!isOpenSourceEdition() && isAdmin()) || isLocalDevEnv() ? <ConfigureIRM /> : undefined}
+    //       />
+    //     );
+    //   },
+    // },
     {
       path: '/testing-and-synthetics',
       component: () => <NavLandingPage navId="testing-and-synthetics" />,
@@ -279,25 +279,25 @@ export function getAppRoutes(): RouteDescriptor[] {
       path: '/admin',
       component: () => <NavLandingPage navId="cfg" header={<ConnectionsRedirectNotice />} />,
     },
-    {
-      path: '/admin/authentication',
-      roles: () => contextSrv.evaluatePermission([AccessControlAction.SettingsWrite]),
-      component:
-        config.licenseInfo.enabledFeatures?.saml || config.ldapEnabled || config.featureToggles.ssoSettingsApi
-          ? SafeDynamicImport(
-              () =>
-                import(/* webpackChunkName: "AdminAuthentication" */ '../features/auth-config/AuthProvidersListPage')
-            )
-          : () => <Navigate replace to="/admin" />,
-    },
-    {
-      path: '/admin/authentication/ldap',
-      component: config.featureToggles.ssoSettingsLDAP
-        ? SafeDynamicImport(
-            () => import(/* webpackChunkName: "LdapSettingsPage" */ 'app/features/admin/ldap/LdapSettingsPage')
-          )
-        : LdapPage,
-    },
+    // {
+    //   path: '/admin/authentication',
+    //   roles: () => contextSrv.evaluatePermission([AccessControlAction.SettingsWrite]),
+    //   component:
+    //     config.licenseInfo.enabledFeatures?.saml || config.ldapEnabled || config.featureToggles.ssoSettingsApi
+    //       ? SafeDynamicImport(
+    //           () =>
+    //             import(/* webpackChunkName: "AdminAuthentication" */ '../features/auth-config/AuthProvidersListPage')
+    //         )
+    //       : () => <Navigate replace to="/admin" />,
+    // },
+    // {
+    //   path: '/admin/authentication/ldap',
+    //   component: config.featureToggles.ssoSettingsLDAP
+    //     ? SafeDynamicImport(
+    //         () => import(/* webpackChunkName: "LdapSettingsPage" */ 'app/features/admin/ldap/LdapSettingsPage')
+    //       )
+    //     : LdapPage,
+    // },
     {
       path: '/admin/authentication/:provider',
       roles: () => contextSrv.evaluatePermission([AccessControlAction.SettingsWrite]),
@@ -313,10 +313,10 @@ export function getAppRoutes(): RouteDescriptor[] {
         () => import(/* webpackChunkName: "AdminSettings" */ 'app/features/admin/AdminSettings')
       ),
     },
-    {
-      path: '/admin/upgrading',
-      component: SafeDynamicImport(() => import('app/features/admin/UpgradePage')),
-    },
+    // {
+    //   path: '/admin/upgrading',
+    //   component: SafeDynamicImport(() => import('app/features/admin/UpgradePage')),
+    // },
     {
       path: '/admin/users',
       component: SafeDynamicImport(

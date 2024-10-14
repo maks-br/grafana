@@ -24,7 +24,7 @@ const navModel = {
   main: {
     icon: 'grafana' as const,
     text: 'Invite',
-    subTitle: 'Register your Grafana account',
+    subTitle: 'Register your Cidra account',
     breadcrumbs: [{ title: 'Login', url: 'login' }],
   },
   node: {
@@ -67,7 +67,7 @@ export const SignupInvitedPage = () => {
         <h3 className="page-sub-heading">Hello {greeting || 'there'}.</h3>
 
         <div className={cx('modal-tagline', styles.tagline)}>
-          <em>{invitedBy || 'Someone'}</em> has invited you to join Grafana and the organization{' '}
+          <em>{invitedBy || 'Cider Consulting'}</em> has invited you to join Cidra and the organization{' '}
           <span className="highlight-word">{contextSrv.user.orgName}</span>
           <br />
           Please complete the following and choose a password to accept your invitation and continue:

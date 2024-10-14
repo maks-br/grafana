@@ -3,7 +3,7 @@ import { memo } from 'react';
 
 import { GrafanaTheme2, LinkTarget } from '@grafana/data';
 import { config } from '@grafana/runtime';
-import { Icon, IconName, useStyles2 } from '@grafana/ui';
+import { IconName, useStyles2 } from '@grafana/ui';
 import { t } from 'app/core/internationalization';
 
 export interface FooterLink {
@@ -100,18 +100,18 @@ export interface Props {
 }
 
 export const Footer = memo(({ customLinks, hideEdition }: Props) => {
-  const links = (customLinks || getFooterLinks()).concat(getVersionLinks(hideEdition));
+  //const links = (customLinks || getFooterLinks()).concat(getVersionLinks(hideEdition));
   const styles = useStyles2(getStyles);
 
   return (
     <footer className={styles.footer}>
       <div className="text-center">
         <ul className={styles.list}>
-          {links.map((link, index) => (
-            <li className={styles.listItem} key={index}>
-              <FooterItem item={link} />
-            </li>
-          ))}
+          {/*{links.map((link, index) => (*/}
+          {/*  <li className={styles.listItem} key={index}>*/}
+          {/*    <FooterItem item={link} />*/}
+          {/*  </li>*/}
+          {/*))}*/}
         </ul>
       </div>
     </footer>
@@ -120,21 +120,21 @@ export const Footer = memo(({ customLinks, hideEdition }: Props) => {
 
 Footer.displayName = 'Footer';
 
-function FooterItem({ item }: { item: FooterLink }) {
-  const content = item.url ? (
-    <a href={item.url} target={item.target} rel="noopener noreferrer" id={item.id}>
-      {item.text}
-    </a>
-  ) : (
-    item.text
-  );
-
-  return (
-    <>
-      {item.icon && <Icon name={item.icon} />} {content}
-    </>
-  );
-}
+// function FooterItem({ item }: { item: FooterLink }) {
+//   const content = item.url ? (
+//     <a href={item.url} target={item.target} rel="noopener noreferrer" id={item.id}>
+//       {item.text}
+//     </a>
+//   ) : (
+//     item.text
+//   );
+//
+//   return (
+//     <>
+//       {item.icon && <Icon name={item.icon} />} {content}
+//     </>
+//   );
+// }
 
 const getStyles = (theme: GrafanaTheme2) => ({
   footer: css({
