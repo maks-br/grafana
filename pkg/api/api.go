@@ -452,6 +452,7 @@ func (hs *HTTPServer) registerRoutes() {
 		// Dashboard
 		apiRoute.Group("/dashboards", func(dashboardRoute routing.RouteRegister) {
 			dashboardRoute.Get("/uid/:uid", authorize(ac.EvalPermission(dashboards.ActionDashboardsRead)), routing.Wrap(hs.GetDashboard))
+			dashboardRoute.Get("/uid/:uid/param/:var/details", authorize(ac.EvalPermission(dashboards.ActionDashboardsRead)), routing.Wrap(hs.GetDashboardParameterValues))
 
 			if hs.Features.IsEnabledGlobally(featuremgmt.FlagDashboardRestore) {
 				dashboardRoute.Delete("/uid/:uid", authorize(ac.EvalPermission(dashboards.ActionDashboardsDelete)), routing.Wrap(hs.SoftDeleteDashboard))
@@ -507,6 +508,7 @@ func (hs *HTTPServer) registerRoutes() {
 
 		// Search
 		apiRoute.Get("/search/sorting", routing.Wrap(hs.ListSortOptions))
+		apiRoute.Get("/search/dashboards", routing.Wrap(hs.SearchDashboards))
 		apiRoute.Get("/search/", routing.Wrap(hs.Search))
 
 		// metrics

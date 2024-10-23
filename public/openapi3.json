@@ -2557,7 +2557,7 @@
       "AlertQuery": {
         "properties": {
           "datasourceUid": {
-            "description": "Grafana data source unique identifier; it should be '__expr__' for a Server Side Expression operation.",
+            "description": "Sidra data source unique identifier; it should be '__expr__' for a Server Side Expression operation.",
             "type": "string"
           },
           "model": {
@@ -2767,7 +2767,7 @@
               "alertname",
               "grafana_folder"
             ],
-            "description": "Override the labels by which incoming alerts are grouped together. For example, multiple alerts coming in for\ncluster=A and alertname=LatencyHigh would be batched into a single group. To aggregate by all possible labels\nuse the special value '...' as the sole label name.\nThis effectively disables aggregation entirely, passing through all alerts as-is. This is unlikely to be what\nyou want, unless you have a very low alert volume or your upstream notification system performs its own grouping.\nMust include 'alertname' and 'grafana_folder' if not using '...'.",
+            "description": "Override the labels by which incoming alerts are grouped together. For example, multiple alerts coming in for\ncluster=A and alertname=LatencyHigh would be batched into a single group. To aggregate by all possible labels\nuse the special value '...' as the sole label name.\nThis effectively disables aggregation entirely, passing through all alerts as-is. This is unlikely to be what\nyou want, unless you have a very low alert volume or your upstream notification system performs its own grouping.\nMust include 'alertname' and 'sidra_folder' if not using '...'.",
             "example": [
               "alertname",
               "grafana_folder",
@@ -2800,7 +2800,7 @@
           },
           "receiver": {
             "description": "Name of the receiver to send notifications to.",
-            "example": "grafana-default-email",
+            "example": "sidra-default-email",
             "type": "string"
           },
           "repeat_interval": {
@@ -3144,7 +3144,7 @@
         "type": "object"
       },
       "AnnotationQuery": {
-        "description": "TODO docs\nFROM: AnnotationQuery in grafana-data/src/types/annotations.ts",
+        "description": "TODO docs\nFROM: AnnotationQuery in sidra-data/src/types/annotations.ts",
         "properties": {
           "builtIn": {
             "description": "Set to 1 for the standard annotation query all dashboards have by default.",
@@ -3177,14 +3177,14 @@
             "$ref": "#/components/schemas/AnnotationTarget"
           },
           "type": {
-            "description": "TODO -- this should not exist here, it is based on the --grafana-- datasource",
+            "description": "TODO -- this should not exist here, it is based on the --sidra-- datasource",
             "type": "string"
           }
         },
         "type": "object"
       },
       "AnnotationTarget": {
-        "description": "TODO: this should be a regular DataQuery that depends on the selected dashboard\nthese match the properties of the \"grafana\" datasouce that is default in most dashboards",
+        "description": "TODO: this should be a regular DataQuery that depends on the selected dashboard\nthese match the properties of the \"sidra\" datasouce that is default in most dashboards",
         "properties": {
           "limit": {
             "description": "Only required/valid for the grafana datasource...\nbut code+tests is already depending on it so hard to change",

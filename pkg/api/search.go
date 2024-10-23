@@ -1,19 +1,151 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/grafana/grafana/pkg/services/org"
-
 	"github.com/grafana/grafana/pkg/api/response"
 	"github.com/grafana/grafana/pkg/infra/metrics"
+	dashboards "github.com/grafana/grafana/pkg/kinds/dashboard"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/dashboards/dashboardaccess"
+	"github.com/grafana/grafana/pkg/services/org"
 	"github.com/grafana/grafana/pkg/services/search"
 	"github.com/grafana/grafana/pkg/services/search/model"
 	"github.com/grafana/grafana/pkg/util"
 )
+
+// swagger:route GET /search/dashboards search searchDashboards
+//
+// Responses:
+// 200: searchResponse
+// 401: unauthorisedError
+// 422: unprocessableEntityError
+// 500: internalServerError
+func (hs *HTTPServer) SearchDashboards(c *contextmodel.ReqContext) response.Response {
+	ctx, span := tracer.Start(c.Req.Context(), "api.GetDashboardParameters")
+	defer span.End()
+
+	c.Req = c.Req.WithContext(ctx)
+
+	query := c.Query("query")
+	tags := c.QueryStrings("tag")
+	starred := c.Query("starred")
+	limit := c.QueryInt64("limit")
+	page := c.QueryInt64("page")
+	dashboardType := c.Query("type")
+	sort := c.Query("sort")
+	deleted := c.Query("deleted")
+	permission := dashboardaccess.PERMISSION_VIEW
+
+	if deleted == "true" && c.SignedInUser.GetOrgRole() != org.RoleAdmin {
+		return response.Error(http.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	if limit > 5000 {
+		return response.Error(http.StatusUnprocessableEntity, "Limit is above maximum allowed (5000), use page parameter to access hits beyond limit", nil)
+	}
+
+	if c.Query("permission") == "Edit" {
+		permission = dashboardaccess.PERMISSION_EDIT
+	}
+
+	dbIDs := make([]int64, 0)
+	for _, id := range c.QueryStrings("dashboardIds") {
+		dashboardID, err := strconv.ParseInt(id, 10, 64)
+		if err == nil {
+			dbIDs = append(dbIDs, dashboardID)
+		}
+	}
+
+	dbUIDs := c.QueryStrings("dashboardUIDs")
+	if len(dbUIDs) == 0 {
+		// To keep it for now backward compatible for grafana 9
+		dbUIDs = c.QueryStrings("dashboardUID")
+	}
+
+	folderIDs := make([]int64, 0)
+	for _, id := range c.QueryStrings("folderIds") {
+		folderID, err := strconv.ParseInt(id, 10, 64)
+		if err == nil {
+			folderIDs = append(folderIDs, folderID)
+			metrics.MFolderIDsAPICount.WithLabelValues(metrics.Search).Inc()
+		}
+	}
+
+	folderUIDs := c.QueryStrings("folderUIDs")
+
+	bothDashboardIds := len(dbIDs) > 0 && len(dbUIDs) > 0
+	bothFolderIds := len(folderIDs) > 0 && len(folderUIDs) > 0
+
+	if bothDashboardIds || bothFolderIds {
+		return response.Error(http.StatusBadRequest, "search supports UIDs or IDs, not both", nil)
+	}
+
+	searchQuery := search.Query{
+		Title:         query,
+		Tags:          tags,
+		SignedInUser:  c.SignedInUser,
+		Limit:         limit,
+		Page:          page,
+		IsStarred:     starred == "true",
+		IsDeleted:     deleted == "true",
+		OrgId:         c.SignedInUser.GetOrgID(),
+		DashboardIds:  dbIDs,
+		DashboardUIDs: dbUIDs,
+		Type:          dashboardType,
+		FolderIds:     folderIDs, // nolint:staticcheck
+		FolderUIDs:    folderUIDs,
+		Permission:    permission,
+		Sort:          sort,
+	}
+
+	hits, err := hs.SearchService.SearchHandler(c.Req.Context(), &searchQuery)
+	if err != nil {
+		return response.Error(http.StatusInternalServerError, "Search failed", err)
+	}
+	var results = make([]DashboardSearchHit, len(hits))
+	for i, hit := range hits {
+		results[i] = DashboardSearchHit{
+			Title:       hit.Title,
+			UID:         hit.UID,
+			FolderUID:   hit.FolderUID,
+			FolderTitle: hit.FolderTitle,
+			FolderUrl:   hit.FolderURL,
+			Tags:        hit.Tags,
+		}
+		dash, _ := hs.getDashboardHelper(ctx, c.SignedInUser.GetOrgID(), 0, hit.UID)
+
+		panelModels, _ := dash.Data.Get("panels").MarshalJSON()
+
+		var panels []dashboards.Panel
+		json.Unmarshal(panelModels, &panels)
+
+		variableModels, _ := dash.Data.Get("templating").Get("list").MarshalJSON()
+
+		var vars []dashboards.VariableModel
+		json.Unmarshal(variableModels, &vars)
+
+		panelResponse := make([]*int, len(panels))
+		hs.log.Info("Panels", panels)
+		for i, panelModel := range panels {
+			panelResponse[i] = panelModel.Id
+		}
+
+		variableResponse := make([]string, len(vars))
+		for i, templateModel := range vars {
+			variableResponse[i] = templateModel.Name
+		}
+
+		results[i].Name = dash.Slug
+		results[i].Variables = variableResponse
+		results[i].Panels = panelResponse
+	}
+
+	defer c.TimeRequest(metrics.MApiDashboardSearch)
+	return response.JSON(http.StatusOK, results)
+}
 
 // swagger:route GET /search search search
 //
@@ -131,6 +263,19 @@ func (hs *HTTPServer) ListSortOptions(c *contextmodel.ReqContext) response.Respo
 	return response.JSON(http.StatusOK, util.DynMap{
 		"sortOptions": res,
 	})
+}
+
+type DashboardSearchHit struct {
+	ID          int64    `json:"id"`
+	UID         string   `json:"uid"`
+	Title       string   `json:"title"`
+	Name        string   `json:"name"`
+	FolderTitle string   `json:"folderTitle"`
+	FolderUID   string   `json:"folderUid"`
+	FolderUrl   string   `json:"folderUrl"`
+	Tags        []string `json:"tags"`
+	Panels      []*int   `json:"panels"`
+	Variables   []string `json:"variables"`
 }
 
 // swagger:parameters search

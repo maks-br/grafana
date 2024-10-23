@@ -20,6 +20,7 @@ import (
 	"github.com/grafana/grafana/pkg/components/dashdiffs"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/grafana/grafana/pkg/infra/metrics"
+	dashboardType "github.com/grafana/grafana/pkg/kinds/dashboard"
 	"github.com/grafana/grafana/pkg/services/accesscontrol"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
 	"github.com/grafana/grafana/pkg/services/dashboards"
@@ -70,6 +71,67 @@ func dashboardGuardianResponse(err error) response.Response {
 		return response.Error(http.StatusInternalServerError, "Error while checking dashboard permissions", err)
 	}
 	return response.Error(http.StatusForbidden, "Access denied to this dashboard", nil)
+}
+
+// swagger:route GET /dashboards/uid/{uid}/param/{var}/details dashboards getDashboardParamValuesByUID
+//
+// Get dashboard param values by uid.
+//
+// Will return the dashboard param values given the dashboard unique identifier (uid) and param name.
+//
+// Responses:
+// 200: dashboardResponse
+// 401: unauthorisedError
+// 403: forbiddenError
+// 404: notFoundError
+// 500: internalServerError
+func (hs *HTTPServer) GetDashboardParameterValues(c *contextmodel.ReqContext) response.Response {
+	ctx, span := tracer.Start(c.Req.Context(), "api.GetDashboardParameters")
+	defer span.End()
+	c.Req = c.Req.WithContext(ctx)
+
+	uid := web.Params(c.Req)[":uid"]
+	varName := web.Params(c.Req)[":var"]
+
+	dash, rsp := hs.getDashboardHelper(ctx, c.SignedInUser.GetOrgID(), 0, uid)
+	if rsp != nil {
+		return rsp
+	}
+
+	variableModels, _ := dash.Data.Get("templating").Get("list").MarshalJSON()
+	var vars []dashboardType.VariableModel
+	json.Unmarshal(variableModels, &vars)
+
+	responseModel, _ := findVariableModelByName(vars, varName)
+
+	// TODO check supported types
+	hs.log.Info("Current object type", responseModel.Type)
+	hs.log.Info("Check match object type", responseModel.Type == dashboardType.VariableTypeQuery || responseModel.Type == dashboardType.VariableTypeCustom)
+	//if responseModel.Type != dashboardType.VariableTypeQuery || responseModel.Type != dashboardType.VariableTypeCustom {
+	//	return response.Error(http.StatusBadRequest, "Not supported variable type", nil)
+	//}
+
+	result := struct {
+		Name   string                         `json:"name"`
+		Values []dashboardType.VariableOption `json:"values"`
+		Query  *any                           `json:"query"`
+	}{
+		Name:   responseModel.Name,
+		Values: responseModel.Options,
+		Query:  responseModel.Query,
+	}
+	c.TimeRequest(metrics.MApiDashboardGet)
+	return response.JSON(http.StatusOK, result)
+}
+
+func findVariableModelByName(models []dashboardType.VariableModel, name string) (dashboardType.VariableModel, bool) {
+	for _, model := range models {
+		if model.Name == name {
+			return model, true
+		}
+	}
+	// Return false if not found
+	return dashboardType.VariableModel{}, false
 }
 
 // swagger:route GET /dashboards/uid/{uid} dashboards getDashboardByUID
