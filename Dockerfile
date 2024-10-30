@@ -33,6 +33,8 @@ COPY emails emails
 ENV NODE_ENV production
 RUN yarn build
 
+RUN ls public/build
+
 FROM ${GO_IMAGE} as go-builder
 
 ARG COMMIT_SHA=""
@@ -186,39 +188,47 @@ RUN if [ ! $(getent group "$GF_GID") ]; then \
 
 COPY --from=go-src /tmp/grafana/bin/grafana* /tmp/grafana/bin/*/grafana* ./bin/
 COPY --from=js-src /tmp/grafana/public ./public
+COPY --from=js-src /tmp/grafana/public/build/*.css ./public/build/
+
 COPY --from=js-src /tmp/grafana/LICENSE ./
 
-RUN rm -rf /public/app/plugins/datasource/elasticsearch /public/build/elasticsearch* \
-    /public/app/plugins/datasource/graphite /public/build/graphite* \
-    /public/app/plugins/datasource/opentsdb /public/build/opentsdb* \
-    /public/app/plugins/datasource/influxdb /public/build/influxdb* \
-    /public/app/plugins/datasource/loki /public/build/loki* \
-    /public/app/plugins/datasource/grafana-testdata-datasource /public/build/grafana-testdata-datasource* \
-    /public/app/plugins/datasource/tempo /public/build/tempo* \
-    /public/app/plugins/datasource/jaeger /public/build/jaeger* \
-    /public/app/plugins/datasource/zipkin /public/build/zipkin* \
-    /public/app/plugins/datasource/azuremonitor /public/build/azureMonitor* \
-    /public/app/plugins/datasource/cloudwatch /public/build/cloudwatch* \
-    /public/app/plugins/datasource/cloud-monitoring /public/build/cloudMonitoring* \
-    /public/app/plugins/datasource/parca /public/build/parca* \
-    /public/app/plugins/datasource/phlare /public/build/phlare* \
-    /public/app/plugins/datasource/grafana-pyroscope-datasource /public/build/pyroscope* \
-    /public/app/plugins/datasource/grafana /public/build/grafana*
+#RUN rm -rf ./public/app/plugins/datasource/elasticsearch ./public/build/elasticsearch* \
+#    ./public/app/plugins/datasource/graphite ./public/build/graphite* \
+#    ./public/app/plugins/datasource/opentsdb ./public/build/opentsdb* \
+#    ./public/app/plugins/datasource/influxdb ./public/build/influxdb* \
+#    ./public/app/plugins/datasource/loki ./public/build/loki* \
+#    ./public/app/plugins/datasource/grafana-testdata-datasource ./public/build/grafana-testdata-datasource* \
+#    ./public/app/plugins/datasource/tempo ./public/build/tempo* \
+#    ./public/app/plugins/datasource/jaeger ./public/build/jaeger* \
+#    ./public/app/plugins/datasource/zipkin ./public/build/zipkin* \
+#    ./public/app/plugins/datasource/azuremonitor ./public/build/azureMonitor* \
+#    ./public/app/plugins/datasource/cloudwatch ./public/build/cloudwatch* \
+#    ./public/app/plugins/datasource/cloud-monitoring ./public/build/cloudMonitoring* \
+#    ./public/app/plugins/datasource/parca ./public/build/parca* \
+#    ./public/app/plugins/datasource/phlare ./public/build/phlare* \
+#    ./public/app/plugins/datasource/grafana-pyroscope-datasource ./public/build/pyroscope* \
+#    ./public/app/plugins/datasource/grafana ./public/build/grafana*
 
-RUN rm -rf /public/app/plugins/panel/alertlist \
-    /public/app/plugins/panel/annolist \
-    /public/app/plugins/panel/dashlist \
-    /public/app/plugins/panel/news \
-    /public/app/plugins/panel/geomap \
-    /public/app/plugins/panel/table-old \
-    /public/app/plugins/panel/traces \
-    /public/app/plugins/panel/flamegraph
+#RUN rm -rf ./public/app/plugins/panel/alertlist \
+#    ./public/app/plugins/panel/annolist \
+#    ./public/app/plugins/panel/dashlist \
+#    ./public/app/plugins/panel/news \
+#    ./public/app/plugins/panel/geomap \
+#    ./public/app/plugins/panel/table-old \
+#    ./public/app/plugins/panel/traces \
+#    ./public/app/plugins/panel/flamegraph
+
+RUN find ./public/build/ -name *.js \
+    -exec sed -i 's|.id==="enterprise"|.id==="notanenterprise"|g' {} \; \
+    -exec sed -i 's|.id==="cloud"|.id==="notacloud"|g' {} \;
 
 EXPOSE 3000
 
 ARG RUN_SH=./packaging/docker/run.sh
 
 COPY ${RUN_SH} /run.sh
+
+RUN ls ./public/build/
 
 USER "$GF_UID"
 ENTRYPOINT [ "/run.sh" ]
